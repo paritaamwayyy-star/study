@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- ทำให้เป็นแอปเต็มจอเมื่อ Add to Home Screen -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#4F46E5">
+    
+    <title>StudyFlow</title>
+    <style>
+        /* ตั้งค่าพื้นฐานแบบแอปมือถือ */
+        :root {
+            --primary: #4F46E5;
+            --primary-light: #818CF8;
+            --success: #10B981;
+            --danger: #EF4444;
+            --bg: #F3F4F6;
+            --surface: #FFFFFF;
+            --text-main: #1F2937;
+            --text-muted: #6B7280;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg); color: var(--text-main);
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* ส่วนหัวแอป (Header) */
+        header {
+            background: var(--surface); padding: 15px 20px;
+            font-size: 20px; font-weight: 700; color: var(--primary);
+            text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            z-index: 10; padding-top: max(15px, env(safe-area-inset-top));
+        }
+
+        /* พื้นที่เนื้อหาหลัก */
+        .content {
+            flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 90px;
+        }
+
+        /* การจัดการหน้าต่าง (Tabs) */
+        .tab-pane { display: none; animation: fadeIn 0.3s ease; }
+        .tab-pane.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* การ์ดเนื้อหา */
+        .card {
+            background: var(--surface); border-radius: 16px; padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            margin-bottom: 15px;
+        }
+
+        /* ส่วนจับเวลา */
+        .timer-circle {
+            width: 240px; height: 240px; border-radius: 50%;
+            background: conic-gradient(var(--primary-light) 100%, #e5e7eb 0);
+            display: flex; justify-content: center; align-items: center;
+            margin: 20px auto; box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+        }
+        .timer-inner {
+            width: 220px; height: 220px; border-radius: 50%; background: var(--surface);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 56px; font-weight: bold; color: var(--primary);
+        }
+        
+        /* ปุ่มกด */
+        .btn {
+            display: inline-block; padding: 12px 20px; font-size: 16px; font-weight: 600;
+            border: none; border-radius: 12px; cursor: pointer; color: white;
+            transition: transform 0.1s, opacity 0.2s; width: 100%; margin-top: 10px;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: var(--success); }
+        .btn-danger { background: var(--danger); }
+        .btn-outline { background: transparent; color: var(--text-muted); border: 2px solid #e5e7eb; }
+        .flex-btn-group { display: flex; gap: 10px; }
+        
+        /* ฟอร์ม */
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 14px; color: var(--text-muted); margin-bottom: 5px; font-weight: 500; }
+        input, textarea {
+            width: 100%; padding: 14px; border: 1px solid #e5e7eb; border-radius: 12px;
+            font-size: 16px; background: #f9fafb; outline: none; font-family: inherit;
+        }
+        input:focus, textarea:focus { border-color: var(--primary); background: #fff; }
+        textarea { height: 100px; resize: none; }
+        .input-row { display: flex; gap: 10px; }
+        
+        /* รายการ */
+        .list-item {
+            background: #f9fafb; padding: 15px; border-radius: 12px; margin-bottom: 10px;
+            border-left: 4px solid var(--primary);
+        }
+        .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .list-title { font-weight: 600; color: var(--text-main); font-size: 15px; }
+        .list-meta { font-size: 13px; color: var(--text-muted); }
+        .list-actions { display: flex; gap: 5px; margin-top: 10px; }
+        .btn-small { padding: 6px 12px; font-size: 13px; border-radius: 8px; width: auto; margin: 0; }
+
+        /* แถบเมนูด้านล่าง (Bottom Navigation) */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
+            display: flex; justify-content: space-around; padding: 10px 0;
+            box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05);
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            background: none; border: none; color: var(--text-muted);
+            font-size: 12px; font-weight: 500; cursor: pointer; padding: 5px 15px;
+        }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 22px; margin-bottom: 2px; }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>StudyFlow 📚</header>
+
+    <!-- พื้นที่เนื้อหา -->
+    <main class="content">
+
+        <!-- หน้า 1: จับเวลา (Timer) -->
+        <section id="tab-timer" class="tab-pane active">
+            <div class="card" style="text-align: center;">
+                <h3 style="color: var(--text-main); margin-bottom: 5px;">เวลาโฟกัส</h3>
+                <p style="color: var(--text-muted); font-size: 14px;">ตั้งใจอ่านหนังสือกันเถอะ!</p>
+                
+                <div class="timer-circle">
+                    <div class="timer-inner" id="timerDisplay">25:00</div>
+                </div>
+
+                <div class="input-row" style="margin-bottom: 15px;">
+                    <input type="number" id="customMinutes" placeholder="นาที" style="text-align: center;">
+                    <button class="btn btn-outline" onclick="setCustomMode()" style="width: auto; margin-top: 0;">ตั้งเวลา</button>
+                </div>
+
+                <div class="flex-btn-group">
+                    <button class="btn btn-primary" onclick="startTimer()">เริ่ม</button>
+                    <button class="btn btn-danger" onclick="stopTimer()">หยุด</button>
+                </div>
+                <button class="btn btn-outline" onclick="resetTimer()">เริ่มใหม่ทั้งหมด</button>
+            </div>
+        </section>
+
+        <!-- หน้า 2: ตาราง (Plan) -->
+        <section id="tab-plan" class="tab-pane">
+            <div class="card">
+                <h3 style="margin-bottom: 15px;">เพิ่มตารางการอ่าน</h3>
+                <div class="input-group">
+                    <label>เวลาที่ต้องการแจ้งเตือน</label>
+                    <input type="time" id="planTime">
+                </div>
+                <div class="input-row">
+                    <div class="input-group" style="flex: 2;">
+                        <label>วิชา/หัวข้อ</label>
+                        <input type="text" id="planTask" placeholder="เช่น ชีววิทยา">
+                    </div>
+                    <div class="input-group" style="flex: 1;">
+                        <label>นาที</label>
+                        <input type="number" id="planDuration" placeholder="45">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="addPlan()">+ เพิ่มตาราง</button>
+            </div>
+
+            <div id="planListContainer">
+                <h4 style="color: var(--text-muted); margin: 15px 0 10px 5px; font-size: 14px;">ตารางของวันนี้</h4>
+                <div id="planList"></div>
+            </div>
+        </section>
+
+        <!-- หน้า 3: บันทึก (Notes) -->
+        <section id="tab-notes" class="tab-pane">
+            <div class="card">
+                <h3 style="margin-bottom: 15px;">สรุปสิ่งที่ได้เรียนรู้</h3>
+                <div class="input-row">
+                    <div class="input-group" style="flex: 2;">
+                        <label>วิชาที่อ่าน</label>
+                        <input type="text" id="noteSubject" placeholder="เช่น คณิตศาสตร์">
+                    </div>
+                    <div class="input-group" style="flex: 1;">
+                        <label>เวลา (นาที)</label>
+                        <input type="number" id="noteDuration" placeholder="60">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>สรุปเนื้อหาสั้นๆ (Active Recall)</label>
+                    <textarea id="noteText" placeholder="วันนี้จำอะไรได้บ้าง? พิมพ์เลย..."></textarea>
+                </div>
+                <button class="btn btn-success" onclick="saveNote()">บันทึกความรู้</button>
+                <button class="btn btn-outline" onclick="downloadNotes()">ดาวน์โหลดสรุป (.txt)</button>
+            </div>
+
+            <div id="noteListContainer">
+                <h4 style="color: var(--text-muted); margin: 15px 0 10px 5px; font-size: 14px;">บันทึกย้อนหลัง</h4>
+                <div id="noteList"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- แถบเมนูด้านล่าง -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" onclick="switchTab('timer', this)">
+            <span class="nav-icon">⏱️</span>
+            <span>จับเวลา</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('plan', this)">
+            <span class="nav-icon">📅</span>
+            <span>ตาราง</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('notes', this)">
+            <span class="nav-icon">📝</span>
+            <span>บันทึก</span>
+        </button>
+    </nav>
+
+    <!-- เสียงแจ้งเตือน -->
+    <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+    <script>
+        // --- การเปลี่ยนหน้า (Tab Navigation) ---
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+        }
+
+        // --- ระบบจับเวลา ---
+        let defaultTime = 25 * 60;
+        let timeLeft = defaultTime;
+        let timerId = null;
+
+        function updateDisplay() {
+            let m = Math.floor(timeLeft / 60);
+            let s = timeLeft % 60;
+            document.getElementById('timerDisplay').innerText = (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+        }
+
+        function setCustomMode() {
+            let mins = document.getElementById('customMinutes').value;
+            if(mins > 0) applyTimeToTimer(mins);
+        }
+
+        function applyTimeToTimer(mins) {
+            stopTimer();
+            defaultTime = mins * 60;
+            timeLeft = defaultTime;
+            updateDisplay();
+            switchTab('timer', document.querySelectorAll('.nav-item')[0]); // กลับหน้าแรก
+        }
+
+        function startTimer() {
+            if (timerId !== null) return;
+            timerId = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--; updateDisplay();
+                } else {
+                    stopTimer();
+                    document.getElementById('alarmSound').play();
+                    alert("เก่งมาก! หมดเวลาโฟกัสแล้ว ไปพักสายตาหรือจดสรุปกันเถอะ 🎉");
+                }
+            }, 1000);
+        }
+
+        function stopTimer() { clearInterval(timerId); timerId = null; }
+        function resetTimer() { stopTimer(); timeLeft = defaultTime; updateDisplay(); }
+
+        // --- ระบบตาราง (Local Storage) ---
+        let plans = JSON.parse(localStorage.getItem('studyPlans')) || [];
+        renderPlans();
+        
+        function addPlan() {
+            let time = document.getElementById('planTime').value;
+            let task = document.getElementById('planTask').value;
+            let duration = document.getElementById('planDuration').value;
+            
+            if(time && task && duration) {
+                plans.push({ time: time, task: task, duration: duration, notified: false });
+                plans.sort((a, b) => a.time.localeCompare(b.time));
+                savePlans();
+                document.getElementById('planTime').value = '';
+                document.getElementById('planTask').value = '';
+                document.getElementById('planDuration').value = '';
+            }
+        }
+
+        function removePlan(index) { plans.splice(index, 1); savePlans(); }
+        function savePlans() { localStorage.setItem('studyPlans', JSON.stringify(plans)); renderPlans(); }
+
+        function renderPlans() {
+            let list = document.getElementById('planList');
+            list.innerHTML = '';
+            plans.forEach((p, index) => {
+                list.innerHTML += `
+                    <div class="list-item">
+                        <div class="list-header">
+                            <span class="list-title">${p.task}</span>
+                            <span class="list-meta">⏰ ${p.time}</span>
+                        </div>
+                        <div class="list-meta">ใช้เวลา ${p.duration} นาที</div>
+                        <div class="list-actions">
+                            <button class="btn btn-primary btn-small" onclick="applyTimeToTimer(${p.duration})">▶️ เริ่มจับเวลา</button>
+                            <button class="btn btn-outline btn-small" style="border-color: var(--danger); color: var(--danger);" onclick="removePlan(${index})">ลบ</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        setInterval(() => {
+            let now = new Date();
+            let currentTime = (now.getHours() < 10 ? '0' : '') + now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
+            plans.forEach((p, index) => {
+                if(p.time === currentTime && !p.notified) {
+                    plans[index].notified = true;
+                    savePlans(); 
+                    document.getElementById('alarmSound').play();
+                    alert("🔔 ถึงเวลาอ่านวิชา: " + p.task + " แล้วครับ!");
+                }
+            });
+        }, 10000);
+
+        // --- ระบบบันทึก (Local Storage) ---
+        let notes = JSON.parse(localStorage.getItem('studyNotes')) || [];
+        renderNotes();
+
+        function saveNote() {
+            let subject = document.getElementById('noteSubject').value || 'ไม่ได้ระบุวิชา';
+            let duration = document.getElementById('noteDuration').value || '-';
+            let text = document.getElementById('noteText').value;
+
+            if(text) {
+                let now = new Date();
+                let dateStr = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
+                notes.unshift({ date: dateStr, subject: subject, duration: duration, text: text });
+                localStorage.setItem('studyNotes', JSON.stringify(notes));
+                
+                document.getElementById('noteSubject').value = '';
+                document.getElementById('noteDuration').value = '';
+                document.getElementById('noteText').value = '';
+                renderNotes();
+            }
+        }
+
+        function deleteNote(index) {
+            if(confirm("ต้องการลบบันทึกนี้ใช่ไหม?")) {
+                notes.splice(index, 1);
+                localStorage.setItem('studyNotes', JSON.stringify(notes));
+                renderNotes();
+            }
+        }
+
+        function renderNotes() {
+            let list = document.getElementById('noteList');
+            list.innerHTML = '';
+            notes.forEach((n, index) => {
+                list.innerHTML += `
+                    <div class="list-item">
+                        <div class="list-header">
+                            <span class="list-title">📘 ${n.subject}</span>
+                            <button class="btn btn-outline btn-small" style="padding: 2px 8px;" onclick="deleteNote(${index})">ลบ</button>
+                        </div>
+                        <div class="list-meta" style="margin-bottom: 8px;">🗓️ ${n.date} | ⏱️ ${n.duration} นาที</div>
+                        <div style="font-size: 14px; line-height: 1.5;">${n.text}</div>
+                    </div>`;
+            });
+        }
+
+        function downloadNotes() {
+            if(notes.length === 0) { alert("ยังไม่มีข้อมูลสรุปครับ"); return; }
+            let fileContent = "=== สรุปการอ่านหนังสือ StudyFlow ===\n\n";
+            notes.forEach(n => {
+                fileContent += `วันที่: ${n.date}\nวิชา: ${n.subject}\nเวลาที่ใช้: ${n.duration} นาที\nสรุปเนื้อหา:\n${n.text}\n-----------------------------------\n\n`;
+            });
+            let blob = new Blob([fileContent], { type: "text/plain;charset=utf-8" });
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "StudyFlow_Notes.txt";
+            link.click();
+        }
+    </script>
+</body>
+</html>
